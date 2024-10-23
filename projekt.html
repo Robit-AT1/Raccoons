@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Időjárás Előrejelzés</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(to right, #1e1e78, #6a5acd);
+            color: #ffffff;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            height: 100vh;
+            overflow-y: auto; 
+        }
+
+        .konténer {
+            display: flex;
+            width: 90%;
+            max-width: 1200px;
+            border-radius: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            overflow: hidden;
+            flex-direction: column; 
+        }
+
+        .kereső-konténer {
+            background-color: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            color: #FFDD57;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        input[type="text"] {
+            width: 80%;
+            padding: 10px;
+            border-radius: 10px;
+            border: none;
+            font-size: 18px;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            background-color: #FFDD57;
+            color: #1e1e78;
+            font-size: 18px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            width: 80%;
+        }
+
+        button:hover {
+            background-color: #ffcc00;
+        }
+
+        .idojaras-info {
+            flex: 1;
+            background-color: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            overflow-y: auto;
+            margin-top: 20px; /* Térköz a keresés és az időjárás információk között */
+        }
+
+        .idojaras-kartya {
+            margin-bottom: 20px;
+            padding: 20px;
+            background-color: rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center; /* Az elemek középre igazítása */
+        }
+
+        .idojaras-kartya img {
+            width: 60px; /* Ikon mérete */
+            margin-right: 15px; /* Térköz az ikon és a szöveg között */
+        }
+
+        .előrejelzés-cím {
+            font-size: 2em; 
+            margin: 20px 0 10px;
+            text-align: center;
+        }
+
+        .előrejelzés-konténer {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+        }
+
+        .előrejelzés-kartya {
+            flex: 1; /* Minden kártya egyenlő méretű */
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            margin: 0 10px; /* Térköz a kártyák között */
+            text-align: center;
+            padding: 20px; 
+            transition: transform 0.3s;
+        }
+
+        .előrejelzés-kartya img {
+            width: 70px; 
+            margin-bottom: 10px; 
+        }
+    </style>
+</head>
+<body>
+    <div class="konténer">
+        <div class="kereső-konténer">
+            <h1>Időjárás Előrejelzés</h1>
+            <input type="text" id="város" placeholder="Add meg a város nevét">
+            <button onclick="getWeather()">Keresés</button>
+        </div>
+
+        <div class="idojaras-info" id="idojaras-részletek"></div>
+    </div>
+
+    <script>
+        const apiKey = '30d4741c779ba94c470ca1f63045390a';
+
+        function getWeather() {
+            const város = document.getElementById("város").value;
+            if (!város) {
+                alert("Kérlek, add meg a város nevét!");
+                return;
+            }
+
+            const url = `https://api.openweathermap.org/data/2.5/weather?q=${város}&units=metric&appid=${apiKey}`;
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.cod === "404") {
+                        alert("Város nem található!");
+                        return;
+                    }
+
+                    const idoRészletek = `
+                        <div class="idojaras-kartya">
+                            <img src="https://openweathermap.org/img/wn/${data.weather[0].icon}@2x.png" alt="Időjárás ikon">
+                            <div>
+                                <h2>${város}</h2>
+                                <p><strong>Hőmérséklet:</strong> ${data.main.temp}°C</p>
+                                <p><strong>Leírás:</strong> ${data.weather[0].description}</p>
+                                <p><strong>Páratartalom:</strong> ${data.main.humidity}%</p>
+                                <p><strong>Szél sebesség:</strong> ${data.wind.speed} m/s</p>
+                            </div>
+                        </div>
+                    `;
+
+                    document.getElementById("idojaras-részletek").innerHTML = idoRészletek;
+
+                    const lat = data.coord.lat;
+                    const lon = data.coord.lon;
+
+                    getHourlyForecast(lat, lon);
+                    getDailyForecast(lat, lon);
+                })
+                .catch(error => {
+                    alert("Hiba történt az adatok lekérdezésekor.");
+                    console.error(error);
+                });
+        }
+
+        function getHourlyForecast(lat, lon) {
+            const hourlyUrl = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&units=metric&appid=${apiKey}`;
+            fetch(hourlyUrl)
+                .then(response => response.json())
+                .then(data => {
+                    let hourlyHTML = `
+                        <div class="előrejelzés-cím">Óránkénti előrejelzés</div>
+                        <div class="előrejelzés-konténer" id="óránkénti-előrejelzés">
+                    `;
+
+                    data.list.slice(0, 6).forEach(forecast => {
+                        const time = new Date(forecast.dt_txt).getHours();
+                        const temp = forecast.main.temp;
+                        const icon = forecast.weather[0].icon;
+                        const description = forecast.weather[0].description;
+
+                        hourlyHTML += `
+                            <div class="előrejelzés-kartya">
+                                <img src="https://openweathermap.org/img/wn/${icon}@2x.png" alt="Időjárás ikon">
+                                <strong>${time}:00</strong>
+                                <p>${temp}°C</p>
+                                <p>${description}</p>
+                            </div>
+                        `;
+                    });
+
+                    hourlyHTML += `</div>`;
+                    document.getElementById("idojaras-részletek").innerHTML += hourlyHTML;
+                })
+                .catch(error => {
+                    console.error("Hiba az óránkénti előrejelzés lekérdezésekor:", error);
+                });
+        }
+
+        function getDailyForecast(lat, lon) {
+            const dailyUrl = `https://api.openweathermap.org/data/2.5/onecall?lat=${lat}&lon=${lon}&exclude=hourly,minutely&units=metric&appid=${apiKey}`;
+            fetch(dailyUrl)
+                .then(response => response.json())
+                .then(data => {
+                    let dailyHTML = `
+                        <div class="előrejelzés-cím">8 napos előrejelzés</div>
+                        <div class="előrejelzés-konténer" id="napi-előrejelzés">
+                    `;
+
+                    data.daily.forEach((forecast, index) => {
+                        if (index < 8) {
+                            const date = new Date(forecast.dt * 1000).toLocaleDateString();
+                            const temp = forecast.temp.day;
+                            const icon = forecast.weather[0].icon;
+                            const description = forecast.weather[0].description;
+
+                            dailyHTML += `
+                                <div class="előrejelzés-kartya">
+                                    <img src="https://openweathermap.org/img/wn/${icon}@2x.png" alt="Időjárás ikon">
+                                    <strong>${date}</strong>
+                                    <p>${temp}°C</p>
+                                    <p>${description}</p>
+                                </div>
+                            `;
+                        }
+                    });
+
+                    dailyHTML += `</div>`;
+                    document.getElementById("idojaras-részletek").innerHTML += dailyHTML;
+                })
+                .catch(error => {
+                    console.error("Hiba a napi előrejelzés lekérdezésekor:", error);
+                });
+        }
+    </script>
+</body>
+</html>
